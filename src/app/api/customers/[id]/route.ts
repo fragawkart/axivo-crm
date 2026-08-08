@@ -16,10 +16,12 @@ export async function GET(
     where: { id: customerId },
     include: {
       events: {
-        orderBy: { date: "asc" },
+        orderBy: { date: "desc" },
         include: {
           email: {
-            select: { subject: true, fromEmail: true },
+            include: {
+              analysis: true,
+            },
           },
         },
       },
@@ -47,6 +49,17 @@ export async function GET(
       description: e.description,
       date: e.date,
       emailSubject: e.email?.subject || null,
+      emailBody: e.email?.body || null,
+      emailFrom: e.email?.fromEmail || null,
+      analysis: e.email?.analysis
+        ? {
+            priority: e.email.analysis.priority,
+            categories: e.email.analysis.categories,
+            summary: e.email.analysis.summary,
+            suggestedReply: e.email.analysis.suggestedReply,
+            reason: e.email.analysis.reason,
+          }
+        : null,
     })),
   });
 }
