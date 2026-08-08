@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+ 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+ 
+model Customer {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String   @default("")
+  companyName  String   @default("") @map("company_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+ 
+  emails       Email[]
+  events       Event[]
+ 
+  @@map("customers")
+}
+ 
+model Email {
+  id             Int      @id @default(autoincrement())
+  source         String   @default("n8n_email")
+  externalId     String   @map("external_id")
+  threadId       String   @default("") @map("thread_id")
+  fromName       String   @default("") @map("from_name")
+  fromEmail      String   @default("") @map("from_email")
+  subject        String   @default("")
+  body           String   @default("")
+  receivedAt     DateTime @map("received_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+ 
+  customerId     Int      @map("customer_id")
+  customer       Customer @relation(fields: [customerId], references: [id])
+ 
+  analysis       EmailAnalysis?
+  events         Event[]
+ 
+  @@unique([source, externalId])
+  @@map("emails")
+}
+ 
+model EmailAnalysis {
+  id             Int      @id @default(autoincrement())
+  priority       Int      @default(4)
+  categories     String[] @default([])
+  reason         String   @default("")
+  summary        String   @default("")
+  suggestedReply String   @default("") @map("suggested_reply")
+  createdAt      DateTime @default(now()) @map("created_at")
+ 
+  emailId        Int      @unique @map("email_id")
+  email          Email    @relation(fields: [emailId], references: [id])
+ 
+  @@map("email_analyses")
+}
+ 
+model Event {
+  id          Int      @id @default(autoincrement())
+  type        String
+  level       String   @default("MINOR")
+  title       String
+  description String   @default("")
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+ 
+  customerId  Int      @map("customer_id")
+  customer    Customer @relation(fields: [customerId], references: [id])
+ 
+  emailId     Int?     @map("email_id")
+  email       Email?   @relation(fields: [emailId], references: [id])
+ 
+  @@map("events")
+}
