@@ -21,7 +21,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     eventCount: customer._count.events, emailCount: customer._count.emails,
     events: customer.events.map((e) => ({
       id: e.id, type: e.type, level: e.level, title: e.title, description: e.description,
-      date: e.date, emailSubject: e.email?.subject || null, emailBody: e.email?.body || null,
+      date: e.date, emailThreadId: e.email?.threadId || null,
+        emailSubject: e.email?.subject || null, emailBody: e.email?.body || null,
       emailFrom: e.email?.fromEmail || null,
       analysis: e.email?.analysis ? {
         priority: e.email.analysis.priority, categories: e.email.analysis.categories,

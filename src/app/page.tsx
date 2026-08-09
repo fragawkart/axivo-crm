@@ -13,7 +13,7 @@ import {
 // ── Types ──────────────────────────────────────────────
 interface CustomerSummary { id: number; name: string; email: string; companyName: string; createdAt: string; lastEvent: { date: string; title: string; type: string } | null; eventCount: number; emailCount: number; }
 interface EventAnalysis { priority: number; categories: string[]; summary: string; suggestedReply: string; reason: string; }
-interface EventItem { id: number; type: string; level: string; title: string; description: string; date: string; emailSubject: string | null; emailBody: string | null; emailFrom: string | null; analysis: EventAnalysis | null; }
+interface EventItem { id: number; type: string; level: string; title: string; description: string; date: string; emailSubject: string | null; emailBody: string | null; emailFrom: string | null; analysis: EventAnalysis | null; emailThreadId: string | null; }
 interface CustomerDetail { id: number; name: string; email: string; companyName: string; createdAt: string; eventCount: number; emailCount: number; events: EventItem[]; }
 interface NeedsAttention { id: number; name: string; companyName: string; lastEventDate: string; lastEventTitle: string; eventCount: number; }
 interface Stats { customerCount: number; emailCount: number; eventCount: number; recentEvents: { id: number; type: string; level: string; title: string; date: string; customerId: number; customerName: string; customerCompany: string; priority: number; categories: string[]; }[]; needsAttention: NeedsAttention[]; }
@@ -25,8 +25,8 @@ function eventColor(t: string) { return ({ SERVICE_INQUIRY:"#2563EB",SALES_INQUI
 function eventIconComponent(t: string) { return ({ SERVICE_INQUIRY:Zap,SALES_INQUIRY:TrendingUp,COMPLAINT:AlertTriangle,INVOICE_INQUIRY:FileText,PARTNERSHIP_INQUIRY:Building2,JOB_APPLICATION:UserPlus,FOLLOW_UP:Phone,QUESTION:MessageSquare,GENERAL:Circle,NOTE:StickyNote } as any)[t]||Circle; }
 function eventLabel(t: string) { return ({ SERVICE_INQUIRY:"Zainteresowanie usługą",SALES_INQUIRY:"Szansa sprzedażowa",COMPLAINT:"Reklamacja",INVOICE_INQUIRY:"Faktura",PARTNERSHIP_INQUIRY:"Współpraca",JOB_APPLICATION:"Aplikacja",FOLLOW_UP:"Kontynuacja",QUESTION:"Pytanie",GENERAL:"Ogólne",NOTE:"Notatka" } as any)[t]||t; }
 function priorityBadge(p: number) { return ({ 1:{label:"Pilne",bg:"#FEE2E2",text:"#DC2626"},2:{label:"Ważne",bg:"#DBEAFE",text:"#2563EB"},3:{label:"Normalne",bg:"#F1F5F9",text:"#475569"},4:{label:"Niskie",bg:"#F8FAFC",text:"#94A3B8"} } as any)[p]||{label:"Normalne",bg:"#F1F5F9",text:"#475569"}; }
-function formatDate(d: string) { return new Date(d).toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit",year:"numeric"}); }
-function formatDateShort(d: string) { return new Date(d).toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit"}); }
+function formatDate(d: string) { const dt=new Date(d); return dt.toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+dt.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}); }
+function formatDateShort(d: string) { const dt=new Date(d); return dt.toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit"})+" "+dt.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}); }
 function getInitials(n: string) { return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?"; }
 function daysAgo(d: string) { const x=Math.floor((Date.now()-new Date(d).getTime())/86400000); return x===0?"Dzisiaj":x===1?"Wczoraj":x+" dni temu"; }
  
@@ -77,7 +77,7 @@ function FormModal({title,fields,onSave,onClose,saveLabel="Zapisz"}:{title:strin
  
 // ── Sidebar ──────────────────────────────────────────────
 function Sidebar({currentView,onNavigate,mobileOpen,onCloseMobile}:{currentView:string;onNavigate:(v:string)=>void;mobileOpen:boolean;onCloseMobile:()=>void}) {
-  const{data:session}=useSession();const items=[{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"customers",label:"Klienci",icon:Users},{id:"settings",label:"Ustawienia",icon:Settings2}];
+  const{data:session}=useSession();const items=[{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"customers",label:"Klienci",icon:Users}];
   const content=<div style={{width:260,height:"100%",background:"#0F172A",display:"flex",flexDirection:"column",color:"#CBD5E1"}}>
     <div style={{padding:"24px 20px",borderBottom:"1px solid #1E293B",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:"#fff",letterSpacing:1}}>AX</div><div><div style={{fontWeight:700,fontSize:16,color:"#F8FAFC",letterSpacing:0.5}}>AXIVO</div><div style={{fontSize:11,color:"#64748B",marginTop:-2}}>CRM</div></div></div>
@@ -87,6 +87,7 @@ function Sidebar({currentView,onNavigate,mobileOpen,onCloseMobile}:{currentView:
       <div style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,color:"#475569",padding:"8px 12px",marginBottom:4}}>Menu</div>
       {items.map(item=>{const active=currentView===item.id||(currentView==="customer-detail"&&item.id==="customers");const Icon=item.icon;return <button key={item.id} onClick={()=>{onNavigate(item.id);onCloseMobile();}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:"none",borderRadius:8,background:active?"#1E293B":"transparent",color:active?"#F8FAFC":"#94A3B8",cursor:"pointer",fontSize:14,fontWeight:active?600:400,transition:"all 0.2s",marginBottom:2,textAlign:"left"}} onMouseEnter={e=>{if(!active)e.currentTarget.style.background="#1E293B80"}} onMouseLeave={e=>{if(!active)e.currentTarget.style.background=active?"#1E293B":"transparent"}}><Icon size={18}/>{item.label}</button>;})}
     </nav>
+    <div style={{padding:"4px 12px 8px"}}><button id="settings-sidebar-btn" onClick={()=>{onNavigate("settings");onCloseMobile()}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:"none",borderRadius:8,background:currentView==="settings"?"#1E293B":"transparent",color:currentView==="settings"?"#F8FAFC":"#94A3B8",cursor:"pointer",fontSize:14,fontWeight:currentView==="settings"?600:400,transition:"all 0.2s",textAlign:"left"}} onMouseEnter={e=>{if(currentView!=="settings")e.currentTarget.style.background="#1E293B80"}} onMouseLeave={e=>{if(currentView!=="settings")e.currentTarget.style.background=currentView==="settings"?"#1E293B":"transparent"}}><Settings2 size={18}/>Ustawienia</button></div>
     <div style={{padding:"16px 12px",borderTop:"1px solid #1E293B"}}><div onClick={()=>{onNavigate("settings");onCloseMobile()}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",borderRadius:8,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#1E293B"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
       {session?.user?.image?<img src={session.user.image} style={{width:32,height:32,borderRadius:"50%",objectFit:"cover"}} referrerPolicy="no-referrer" alt=""/>:<div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{(session?.user?.name||"?")[0].toUpperCase()}</div>}
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:500,color:"#E2E8F0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session?.user?.name||"Użytkownik"}</div><div style={{fontSize:11,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session?.user?.email||""}</div></div>
@@ -155,7 +156,7 @@ function TopBar({title,onMenuClick,onRefresh,loading,onSelectCustomer}:{title:st
     <button onClick={onRefresh} style={{width:36,height:36,borderRadius:10,background:"#F1F5F9",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",border:"none",transition:"background 0.2s",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background="#E2E8F0"} onMouseLeave={e=>e.currentTarget.style.background="#F1F5F9"}>
       <RefreshCw size={16} color="#475569" style={{animation:loading?"spin 1s linear infinite":"none"}}/>
     </button>
-    <style>{`@media(max-width:767px){.mobile-menu-btn{display:block!important}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    <style>{`@media(max-width:767px){.mobile-menu-btn{display:block!important}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@media(max-width:640px){h1{font-size:16px!important}h2{font-size:18px!important}}`}</style>
   </div>;
 }
  
@@ -217,25 +218,35 @@ function AIInsightsPanel({onSelectCustomer}:{onSelectCustomer:(id:number)=>void}
 // ── Dashboard ──────────────────────────────────────────────
 function DashboardView({stats,onSelectCustomer,loading}:{stats:Stats|null;onSelectCustomer:(id:number)=>void;loading:boolean}) {
   if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:80}}><Loader2 size={32} color="#2563EB" style={{animation:"spin 1s linear infinite"}}/></div>;
-  const statCards=[{label:"Klienci",value:stats?.customerCount||0,icon:Users,color:"#2563EB"},{label:"E-maile",value:stats?.emailCount||0,icon:Mail,color:"#16A34A"},{label:"Wydarzenia",value:stats?.eventCount||0,icon:Clock,color:"#7C3AED"},{label:"Wymaga uwagi",value:stats?.needsAttention?.length||0,icon:AlertCircle,color:"#EF4444"}];
-  return <div style={{padding:24,maxWidth:1200}}>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:16,marginBottom:32}}>
-      {statCards.map((s,i)=>{const Icon=s.icon;return <FadeIn key={s.label} delay={i*80}><div style={{background:"#fff",borderRadius:14,padding:20,border:"1px solid #E2E8F0",transition:"box-shadow 0.25s,transform 0.25s",cursor:"default"}} onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 24px rgba(37,99,235,0.08)";e.currentTarget.style.transform="translateY(-2px)"}} onMouseLeave={e=>{e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)"}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}><span style={{fontSize:13,color:"#64748B",fontWeight:500}}>{s.label}</span><div style={{width:36,height:36,borderRadius:10,background:s.color+"14",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon size={18} color={s.color}/></div></div><div style={{fontSize:30,fontWeight:700,color:"#0F172A",lineHeight:1}}>{s.value}</div></div></FadeIn>;})}
+  
+  const statCards=[
+    {label:"Klienci",value:stats?.customerCount||0,icon:Users,color:"#2563EB",gradient:"linear-gradient(135deg,#EFF6FF,#DBEAFE)"},
+    {label:"E-maile",value:stats?.emailCount||0,icon:Mail,color:"#16A34A",gradient:"linear-gradient(135deg,#F0FDF4,#DCFCE7)"},
+    {label:"Wydarzenia",value:stats?.eventCount||0,icon:Clock,color:"#7C3AED",gradient:"linear-gradient(135deg,#F5F3FF,#EDE9FE)"},
+    {label:"Wymaga uwagi",value:stats?.needsAttention?.length||0,icon:AlertCircle,color:"#EF4444",gradient:"linear-gradient(135deg,#FEF2F2,#FEE2E2)"}
+  ];
+  return <div style={{padding:"20px 24px",maxWidth:1200}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:14,marginBottom:28}}>
+      {statCards.map((s,i)=>{const Icon=s.icon;return <FadeIn key={s.label} delay={i*60}><div style={{background:s.gradient,borderRadius:14,padding:"18px 20px",border:"1px solid "+s.color+"18",transition:"box-shadow 0.25s,transform 0.25s",cursor:"default",position:"relative",overflow:"hidden"}} onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 8px 28px "+s.color+"18";e.currentTarget.style.transform="translateY(-2px)"}} onMouseLeave={e=>{e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="translateY(0)"}}>
+        <div style={{position:"absolute",right:-8,bottom:-8,opacity:0.06}}><Icon size={72} color={s.color}/></div>
+        <div style={{fontSize:12,color:s.color,fontWeight:600,marginBottom:8,letterSpacing:0.3}}>{s.label}</div>
+        <div style={{fontSize:32,fontWeight:800,color:"#0F172A",lineHeight:1}}>{s.value}</div>
+      </div></FadeIn>;})}
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:20}}>
-      {(stats?.needsAttention?.length||0)>0&&<FadeIn delay={350}><div style={{background:"#fff",borderRadius:14,border:"1px solid #FEE2E2",overflow:"hidden"}}>
-        <div style={{padding:"16px 20px",borderBottom:"1px solid #FEF2F2",display:"flex",alignItems:"center",gap:8,background:"#FEF2F2"}}><AlertCircle size={16} color="#EF4444"/><span style={{fontWeight:600,fontSize:15,color:"#991B1B"}}>Wymaga uwagi</span></div>
-        {stats!.needsAttention.slice(0,5).map((c,i)=><div key={c.id} onClick={()=>onSelectCustomer(c.id)} style={{padding:"14px 20px",borderBottom:i<Math.min(stats!.needsAttention.length,5)-1?"1px solid #FEF2F2":"none",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEF2F2"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))",gap:18}}>
+      {(stats?.needsAttention?.length||0)>0&&<FadeIn delay={280}><div style={{background:"#fff",borderRadius:14,border:"1px solid #FEE2E2",overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #FEF2F2",display:"flex",alignItems:"center",gap:8,background:"linear-gradient(135deg,#FEF2F2,#FFF1F2)"}}><AlertCircle size={16} color="#EF4444"/><span style={{fontWeight:600,fontSize:14,color:"#991B1B"}}>Wymaga uwagi</span><span style={{marginLeft:"auto",fontSize:11,fontWeight:600,color:"#EF4444",background:"#FEE2E2",padding:"2px 8px",borderRadius:10}}>{stats!.needsAttention.length}</span></div>
+        {stats!.needsAttention.slice(0,5).map((c,i)=><div key={c.id} onClick={()=>onSelectCustomer(c.id)} style={{padding:"12px 20px",borderBottom:i<Math.min(stats!.needsAttention.length,5)-1?"1px solid #FEF2F2":"none",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEF2F2"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <div style={{width:36,height:36,borderRadius:"50%",background:"#FEE2E2",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:12,color:"#DC2626",flexShrink:0}}>{getInitials(c.name)}</div>
-          <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{c.name}</div><div style={{fontSize:12,color:"#64748B"}}>{c.lastEventTitle}</div></div>
-          <div style={{fontSize:12,fontWeight:600,color:"#EF4444",flexShrink:0}}>{daysAgo(c.lastEventDate)}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{c.name}</div><div style={{fontSize:12,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.lastEventTitle}</div></div>
+          <div style={{fontSize:11,fontWeight:600,color:"#EF4444",flexShrink:0,background:"#FEE2E2",padding:"3px 8px",borderRadius:6}}>{daysAgo(c.lastEventDate)}</div>
         </div>)}
       </div></FadeIn>}
-      <FadeIn delay={400}><AIInsightsPanel onSelectCustomer={onSelectCustomer}/></FadeIn>
-      <FadeIn delay={550}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
-        <div style={{padding:"16px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>Ostatnie wydarzenia</span><Clock size={16} color="#94A3B8"/></div>
+      <FadeIn delay={350}><AIInsightsPanel onSelectCustomer={onSelectCustomer}/></FadeIn>
+      <FadeIn delay={480}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:8}}><Clock size={16} color="#7C3AED"/><span style={{fontWeight:600,fontSize:14,color:"#0F172A"}}>Ostatnie wydarzenia</span></div><span style={{fontSize:11,color:"#94A3B8"}}>{stats?.recentEvents?.length||0} ostatnich</span></div>
         {!stats?.recentEvents?.length?<EmptyState icon={Inbox} title="Brak wydarzeń" description="Kiedy n8n wyśle pierwszy mail, pojawi się tutaj."/>:
-        stats.recentEvents.map((ev,i)=>{const Icon=eventIconComponent(ev.type);const pb=priorityBadge(ev.priority);return <div key={ev.id} onClick={()=>onSelectCustomer(ev.customerId)} style={{padding:"14px 20px",borderBottom:i<stats.recentEvents.length-1?"1px solid #F8FAFC":"none",display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+        stats.recentEvents.map((ev,i)=>{const Icon=eventIconComponent(ev.type);const pb=priorityBadge(ev.priority);return <div key={ev.id} onClick={()=>onSelectCustomer(ev.customerId)} style={{padding:"12px 20px",borderBottom:i<stats.recentEvents.length-1?"1px solid #F8FAFC":"none",display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
           <div style={{width:32,height:32,borderRadius:8,background:eventColor(ev.type)+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}><Icon size={15} color={eventColor(ev.type)}/></div>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600,color:"#0F172A",marginBottom:2}}>{ev.title}</div><div style={{fontSize:12,color:"#64748B"}}>{ev.customerName}{ev.customerCompany?` · ${ev.customerCompany}`:""}</div></div>
           <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:11,color:"#94A3B8"}}>{formatDateShort(ev.date)}</div><span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:6,background:pb.bg,color:pb.text}}>{pb.label}</span></div>
@@ -244,7 +255,7 @@ function DashboardView({stats,onSelectCustomer,loading}:{stats:Stats|null;onSele
     </div>
   </div>;
 }
- 
+
 // ── Customer List ──────────────────────────────────────────
 function CustomerListView({customers,onSelect,loading,onRefresh,onToast}:{customers:CustomerSummary[];onSelect:(id:number)=>void;loading:boolean;onRefresh:()=>void;onToast:(m:string)=>void}) {
   const[search,setSearch]=useState("");
@@ -315,7 +326,7 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
   if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:80}}><Loader2 size={32} color="#2563EB" style={{animation:"spin 1s linear infinite"}}/></div>;
   if(!customer) return null;
  
-  const eventTypes=Array.from(new Set(customer.events.map(e=>e.type)));
+  const threadCounts:Record<string,number>={};customer.events.forEach(ev=>{if(ev.emailThreadId){threadCounts[ev.emailThreadId]=(threadCounts[ev.emailThreadId]||0)+1}});const eventTypes=Array.from(new Set(customer.events.map(e=>e.type)));
   const filteredEvents=filterType==="ALL"?customer.events:customer.events.filter(e=>e.type===filterType);
  
   return <div style={{padding:24,maxWidth:900}}>
@@ -367,7 +378,7 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
                     <div style={{fontSize:isMajor?15:13,fontWeight:isMajor?700:600,color:"#0F172A",marginBottom:4}}>{ev.title}</div>
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                       <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:6,background:color+"14",color}}>{eventLabel(ev.type)}</span>
-                      {ev.analysis&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:6,background:priorityBadge(ev.analysis.priority).bg,color:priorityBadge(ev.analysis.priority).text}}>{priorityBadge(ev.analysis.priority).label}</span>}
+                      {ev.analysis&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:6,background:priorityBadge(ev.analysis.priority).bg,color:priorityBadge(ev.analysis.priority).text}}>{priorityBadge(ev.analysis.priority).label}</span>}{ev.emailThreadId&&(threadCounts[ev.emailThreadId]||0)>1&&<span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:6,background:"#EFF6FF",color:"#2563EB",display:"inline-flex",alignItems:"center",gap:3}}><MessageSquare size={9}/>Wątek ({threadCounts[ev.emailThreadId]})</span>}
                       <span style={{fontSize:11,color:"#94A3B8"}}>{formatDate(ev.date)}</span>
                     </div>
                   </div>
@@ -401,41 +412,90 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
 // ── Settings View ──────────────────────────────────────────────
 function SettingsView() {
   const{data:session}=useSession();
-  return <div style={{padding:24,maxWidth:700}}>
-    <FadeIn><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden",marginBottom:20}}>
-      <div style={{padding:"20px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8}}><Users size={16} color="#2563EB"/><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>Profil</span></div>
-      <div style={{padding:24}}>
-        <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
-          {session?.user?.image?<img src={session.user.image} style={{width:80,height:80,borderRadius:20,objectFit:"cover",boxShadow:"0 4px 16px rgba(0,0,0,0.08)"}} referrerPolicy="no-referrer" alt=""/>:<div style={{width:80,height:80,borderRadius:20,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:28,color:"#fff"}}>{(session?.user?.name||"?")[0].toUpperCase()}</div>}
+  const[notifEmail,setNotifEmail]=useState(true);
+  const[notifFollowUp,setNotifFollowUp]=useState(true);
+  const[aiModel,setAiModel]=useState("gpt-5.6-luna");
+
+  function Toggle({checked,onChange}:{checked:boolean;onChange:(v:boolean)=>void}){
+    return <button onClick={()=>onChange(!checked)} style={{width:44,height:24,borderRadius:12,border:"none",background:checked?"#2563EB":"#CBD5E1",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:20,height:20,borderRadius:10,background:"#fff",position:"absolute",top:2,left:checked?22:2,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/></button>;
+  }
+  function SettingRow({label,desc,children}:{label:string;desc?:string;children:React.ReactNode}){
+    return <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 0",gap:16}}><div style={{flex:1}}><div style={{fontSize:14,fontWeight:500,color:"#0F172A"}}>{label}</div>{desc&&<div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>{desc}</div>}</div>{children}</div>;
+  }
+  function Section({title,icon:Icon,children,danger}:{title:string;icon:any;children:React.ReactNode;danger?:boolean}){
+    return <div style={{background:"#fff",borderRadius:14,border:"1px solid "+(danger?"#FEE2E2":"#E2E8F0"),overflow:"hidden",marginBottom:16}}>
+      <div style={{padding:"14px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8,background:danger?"linear-gradient(135deg,#FEF2F2,#FFF1F2)":"#fff"}}><Icon size={16} color={danger?"#EF4444":"#2563EB"}/><span style={{fontWeight:600,fontSize:14,color:danger?"#991B1B":"#0F172A"}}>{title}</span></div>
+      <div style={{padding:"4px 20px"}}>{children}</div>
+    </div>;
+  }
+
+  return <div style={{padding:"20px 24px",maxWidth:700}}>
+    <FadeIn>
+      <Section title="Profil" icon={Users}>
+        <div style={{display:"flex",alignItems:"center",gap:16,padding:"16px 0",flexWrap:"wrap"}}>
+          {session?.user?.image?<img src={session.user.image} style={{width:64,height:64,borderRadius:16,objectFit:"cover",boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}} referrerPolicy="no-referrer" alt=""/>:<div style={{width:64,height:64,borderRadius:16,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:22,color:"#fff"}}>{(session?.user?.name||"?")[0].toUpperCase()}</div>}
           <div>
-            <div style={{fontSize:22,fontWeight:700,color:"#0F172A"}}>{session?.user?.name||"Użytkownik"}</div>
-            <div style={{fontSize:14,color:"#64748B",marginTop:2}}>{session?.user?.email||""}</div>
-            <div style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:10,padding:"4px 12px",borderRadius:20,background:"#F0FDF4",border:"1px solid #BBF7D0"}}>
+            <div style={{fontSize:18,fontWeight:700,color:"#0F172A"}}>{session?.user?.name||"Użytkownik"}</div>
+            <div style={{fontSize:13,color:"#64748B",marginTop:2}}>{session?.user?.email||""}</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:8,padding:"3px 10px",borderRadius:20,background:"#F0FDF4",border:"1px solid #BBF7D0"}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#16A34A"}}/>
-              <span style={{fontSize:11,color:"#16A34A",fontWeight:600}}>Zalogowany przez Google</span>
+              <span style={{fontSize:11,color:"#16A34A",fontWeight:600}}>Google</span>
             </div>
           </div>
         </div>
-      </div>
-    </div></FadeIn>
+      </Section>
+    </FadeIn>
 
-    <FadeIn delay={100}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden",marginBottom:20}}>
-      <div style={{padding:"20px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8}}><Zap size={16} color="#7C3AED"/><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>System</span></div>
-      <div style={{padding:"4px 24px"}}>
-        {[["Wersja","AXIVO CRM v1.0"],["Framework","Next.js 15"],["AI Model","GPT-5.6 Luna"],["Hosting","Vercel"],["Baza danych","PostgreSQL (Neon)"],["Automatyzacja","n8n"]].map(([k,v],i)=>
-          <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 0",borderBottom:i<5?"1px solid #F1F5F9":"none"}}>
-            <span style={{fontSize:13,color:"#64748B"}}>{k}</span>
-            <span style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{v}</span>
-          </div>
+    <FadeIn delay={80}>
+      <Section title="Powiadomienia" icon={Mail}>
+        <SettingRow label="Powiadomienia email" desc="Otrzymuj maile o nowych klientach"><Toggle checked={notifEmail} onChange={setNotifEmail}/></SettingRow>
+        <div style={{borderTop:"1px solid #F1F5F9"}}/>
+        <SettingRow label="Przypomnienia follow-up" desc="Powiadomienie gdy klient czeka 7+ dni"><Toggle checked={notifFollowUp} onChange={setNotifFollowUp}/></SettingRow>
+      </Section>
+    </FadeIn>
+
+    <FadeIn delay={160}>
+      <Section title="Integracje" icon={Zap}>
+        <SettingRow label="n8n Workflow" desc="Automatyczne przetwarzanie emaili">
+          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:"#16A34A"}}/>
+          <span style={{fontSize:12,fontWeight:600,color:"#16A34A"}}>Aktywny</span></div>
+        </SettingRow>
+        <div style={{borderTop:"1px solid #F1F5F9"}}/>
+        <SettingRow label="AI Model" desc="Model używany do analizy">
+          <select value={aiModel} onChange={e=>setAiModel(e.target.value)} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #E2E8F0",fontSize:13,color:"#0F172A",background:"#fff",cursor:"pointer"}}>
+            <option value="gpt-5.6-luna">GPT-5.6 Luna</option>
+            <option value="gpt-5.6-terra">GPT-5.6 Terra</option>
+            <option value="gpt-5.6-sol">GPT-5.6 Sol</option>
+          </select>
+        </SettingRow>
+        <div style={{borderTop:"1px solid #F1F5F9"}}/>
+        <SettingRow label="Baza danych" desc="PostgreSQL na Neon.tech">
+          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:"#16A34A"}}/>
+          <span style={{fontSize:12,fontWeight:600,color:"#16A34A"}}>Połączono</span></div>
+        </SettingRow>
+      </Section>
+    </FadeIn>
+
+    <FadeIn delay={240}>
+      <Section title="System" icon={FileText}>
+        {[["Wersja","AXIVO CRM v1.1"],["Framework","Next.js 15"],["Hosting","Vercel"],["Automatyzacja","n8n"]].map(([k,v],i)=>
+          <div key={k}>{i>0&&<div style={{borderTop:"1px solid #F1F5F9"}}/>}<SettingRow label={k}><span style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{v}</span></SettingRow></div>
         )}
-      </div>
-    </div></FadeIn>
+      </Section>
+    </FadeIn>
 
-    <FadeIn delay={200}><button onClick={()=>signOut({callbackUrl:"/login"})} style={{width:"100%",padding:"14px 24px",borderRadius:14,border:"1px solid #FEE2E2",background:"#FEF2F2",color:"#EF4444",fontSize:15,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background="#FEE2E2";e.currentTarget.style.borderColor="#FECACA"}} onMouseLeave={e=>{e.currentTarget.style.background="#FEF2F2";e.currentTarget.style.borderColor="#FEE2E2"}}>
-      <LogOut size={18}/>Wyloguj się
-    </button></FadeIn>
+    <FadeIn delay={320}>
+      <Section title="Konto" icon={LogOut} danger>
+        <div style={{padding:"12px 0"}}>
+          <button onClick={()=>signOut({callbackUrl:"/login"})} style={{width:"100%",padding:"12px 20px",borderRadius:10,border:"none",background:"#EF4444",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#DC2626"} onMouseLeave={e=>e.currentTarget.style.background="#EF4444"}>
+            <LogOut size={16}/>Wyloguj się
+          </button>
+        </div>
+      </Section>
+    </FadeIn>
   </div>;
 }
+
 export default function AxivoCRM() {
   const[view,setView]=useState("dashboard");
   const[selectedCustomer,setSelectedCustomer]=useState<number|null>(null);
