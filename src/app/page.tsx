@@ -6,7 +6,7 @@ import {
   ArrowLeft, Search, TrendingUp, UserPlus, MessageSquare,
   AlertTriangle, Phone, FileText, Zap, ChevronDown, Menu, X,
   Circle, Loader2, RefreshCw, Inbox, Plus, StickyNote, AlertCircle,
-  Filter, Pencil, Trash2,
+  Filter, Pencil, Trash2, Sparkles, Brain,
 } from "lucide-react";
  
 // ── Types ──────────────────────────────────────────────
@@ -17,6 +17,7 @@ interface CustomerDetail { id: number; name: string; email: string; companyName:
 interface NeedsAttention { id: number; name: string; companyName: string; lastEventDate: string; lastEventTitle: string; eventCount: number; }
 interface Stats { customerCount: number; emailCount: number; eventCount: number; recentEvents: { id: number; type: string; level: string; title: string; date: string; customerId: number; customerName: string; customerCompany: string; priority: number; categories: string[]; }[]; needsAttention: NeedsAttention[]; }
 interface SearchResults { customers: any[]; emails: any[]; events: any[]; }
+interface InsightItem { color: string; title: string; description: string; }
  
 // ── Helpers ──────────────────────────────────────────────
 function eventColor(t: string) { return ({ SERVICE_INQUIRY:"#2563EB",SALES_INQUIRY:"#16A34A",COMPLAINT:"#EF4444",INVOICE_INQUIRY:"#F59E0B",PARTNERSHIP_INQUIRY:"#7C3AED",JOB_APPLICATION:"#6B7280",FOLLOW_UP:"#3B82F6",QUESTION:"#64748B",GENERAL:"#94A3B8",NOTE:"#F97316" } as any)[t]||"#94A3B8"; }
@@ -154,6 +155,61 @@ function TopBar({title,onMenuClick,onRefresh,loading,onSelectCustomer}:{title:st
   </div>;
 }
  
+ 
+// ── AI Insights Panel ──────────────────────────────────
+function AIInsightsPanel({onSelectCustomer}:{onSelectCustomer:(id:number)=>void}) {
+  const[insights,setInsights]=useState<InsightItem[]>([]);
+  const[loading,setLoading]=useState(false);
+  const[loaded,setLoaded]=useState(false);
+  const[error,setError]=useState("");
+ 
+  function fetchInsights(){
+    setLoading(true);setError("");
+    fetch("/api/insights").then(r=>r.json()).then(d=>{
+      if(d.error){setError(d.error)}else{setInsights(d.insights||[])}
+      setLoaded(true);
+    }).catch(()=>setError("Błąd połączenia")).finally(()=>setLoading(false));
+  }
+ 
+  const colorStyles:Record<string,{bg:string;border:string;icon:string;label:string}>={
+    red:{bg:"#FEF2F2",border:"#FEE2E2",icon:"#EF4444",label:"Pilne"},
+    yellow:{bg:"#FFFBEB",border:"#FEF3C7",icon:"#F59E0B",label:"Uwaga"},
+    green:{bg:"#F0FDF4",border:"#BBF7D0",icon:"#16A34A",label:"Szansa"},
+  };
+ 
+  return <div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
+    <div style={{padding:"16px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#7C3AED,#2563EB)",display:"flex",alignItems:"center",justifyContent:"center"}}><Brain size={14} color="#fff"/></div>
+        <span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>AI Insights</span>
+      </div>
+      <button onClick={fetchInsights} disabled={loading} style={{padding:"6px 14px",borderRadius:8,border:"none",background:loading?"#F1F5F9":"linear-gradient(135deg,#7C3AED,#2563EB)",color:loading?"#94A3B8":"#fff",fontSize:12,fontWeight:600,cursor:loading?"default":"pointer",display:"flex",alignItems:"center",gap:5,transition:"opacity 0.2s",opacity:loading?0.7:1}}>
+        {loading?<><Loader2 size={13} style={{animation:"spin 1s linear infinite"}}/>Analizuję...</>:<><Sparkles size={13}/>Analizuj</>}
+      </button>
+    </div>
+    <div style={{padding:"16px 20px"}}>
+      {!loaded&&!loading&&<div style={{textAlign:"center",padding:"24px 16px",color:"#94A3B8"}}>
+        <Brain size={32} color="#E2E8F0" style={{marginBottom:8}}/>
+        <div style={{fontSize:13}}>Kliknij „Analizuj" żeby AI przeanalizowało twoich klientów</div>
+      </div>}
+      {error&&<div style={{padding:12,borderRadius:8,background:"#FEF2F2",border:"1px solid #FEE2E2",color:"#DC2626",fontSize:13}}>{error}</div>}
+      {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:32}}><Loader2 size={24} color="#7C3AED" style={{animation:"spin 1s linear infinite"}}/></div>}
+      {loaded&&!loading&&insights.length===0&&!error&&<div style={{textAlign:"center",padding:24,color:"#94A3B8",fontSize:13}}>Brak insightów — za mało danych.</div>}
+      {!loading&&insights.map((ins,i)=>{
+        const style=colorStyles[ins.color]||colorStyles.yellow;
+        return <div key={i} style={{padding:14,borderRadius:10,background:style.bg,border:"1px solid "+style.border,marginBottom:i<insights.length-1?10:0,animation:"slideUp 0.3s ease",animationDelay:i*100+"ms",animationFillMode:"both"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:style.icon,flexShrink:0}}/>
+            <span style={{fontSize:10,fontWeight:700,color:style.icon,textTransform:"uppercase",letterSpacing:0.5}}>{style.label}</span>
+          </div>
+          <div style={{fontSize:14,fontWeight:600,color:"#0F172A",marginBottom:4}}>{ins.title}</div>
+          <div style={{fontSize:13,color:"#475569",lineHeight:1.5}}>{ins.description}</div>
+        </div>;
+      })}
+    </div>
+  </div>;
+}
+ 
 // ── Dashboard ──────────────────────────────────────────────
 function DashboardView({stats,onSelectCustomer,loading}:{stats:Stats|null;onSelectCustomer:(id:number)=>void;loading:boolean}) {
   if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:80}}><Loader2 size={32} color="#2563EB" style={{animation:"spin 1s linear infinite"}}/></div>;
@@ -171,7 +227,8 @@ function DashboardView({stats,onSelectCustomer,loading}:{stats:Stats|null;onSele
           <div style={{fontSize:12,fontWeight:600,color:"#EF4444",flexShrink:0}}>{daysAgo(c.lastEventDate)}</div>
         </div>)}
       </div></FadeIn>}
-      <FadeIn delay={450}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
+      <FadeIn delay={400}><AIInsightsPanel onSelectCustomer={onSelectCustomer}/></FadeIn>
+      <FadeIn delay={550}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
         <div style={{padding:"16px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>Ostatnie wydarzenia</span><Clock size={16} color="#94A3B8"/></div>
         {!stats?.recentEvents?.length?<EmptyState icon={Inbox} title="Brak wydarzeń" description="Kiedy n8n wyśle pierwszy mail, pojawi się tutaj."/>:
         stats.recentEvents.map((ev,i)=>{const Icon=eventIconComponent(ev.type);const pb=priorityBadge(ev.priority);return <div key={ev.id} onClick={()=>onSelectCustomer(ev.customerId)} style={{padding:"14px 20px",borderBottom:i<stats.recentEvents.length-1?"1px solid #F8FAFC":"none",display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
