@@ -72,8 +72,8 @@ ${customerSummaries}`;
       body: JSON.stringify({
         model: "gpt-5.6-luna",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.7,
+        max_completion_tokens: 1000,
+        
       }),
     });
 
