@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
- 
+import Providers from "@/components/Providers";
+
+const inter = Inter({ subsets: ["latin", "latin-ext"] });
+
 export const metadata: Metadata = {
-  title: "Axivo CRM",
-  description: "AI Customer Intelligence",
+  title: "AXIVO CRM",
+  description: "Customer Relationship Management",
 };
- 
+
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="pl">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>{children}</body>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

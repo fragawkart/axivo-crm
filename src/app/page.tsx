@@ -1,12 +1,13 @@
 "use client";
  
+import { signOut, useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   LayoutDashboard, Users, Clock, Mail, Building2, ChevronRight,
   ArrowLeft, Search, TrendingUp, UserPlus, MessageSquare,
   AlertTriangle, Phone, FileText, Zap, ChevronDown, Menu, X,
   Circle, Loader2, RefreshCw, Inbox, Plus, StickyNote, AlertCircle,
-  Filter, Pencil, Trash2, Sparkles, Brain,
+  Filter, Pencil, Trash2, Sparkles, Brain, Settings2, LogOut,
 } from "lucide-react";
  
 // ── Types ──────────────────────────────────────────────
@@ -76,7 +77,7 @@ function FormModal({title,fields,onSave,onClose,saveLabel="Zapisz"}:{title:strin
  
 // ── Sidebar ──────────────────────────────────────────────
 function Sidebar({currentView,onNavigate,mobileOpen,onCloseMobile}:{currentView:string;onNavigate:(v:string)=>void;mobileOpen:boolean;onCloseMobile:()=>void}) {
-  const items=[{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"customers",label:"Klienci",icon:Users}];
+  const{data:session}=useSession();const items=[{id:"dashboard",label:"Dashboard",icon:LayoutDashboard},{id:"customers",label:"Klienci",icon:Users},{id:"settings",label:"Ustawienia",icon:Settings2}];
   const content=<div style={{width:260,height:"100%",background:"#0F172A",display:"flex",flexDirection:"column",color:"#CBD5E1"}}>
     <div style={{padding:"24px 20px",borderBottom:"1px solid #1E293B",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:10,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:"#fff",letterSpacing:1}}>AX</div><div><div style={{fontWeight:700,fontSize:16,color:"#F8FAFC",letterSpacing:0.5}}>AXIVO</div><div style={{fontSize:11,color:"#64748B",marginTop:-2}}>CRM</div></div></div>
@@ -86,7 +87,10 @@ function Sidebar({currentView,onNavigate,mobileOpen,onCloseMobile}:{currentView:
       <div style={{fontSize:10,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,color:"#475569",padding:"8px 12px",marginBottom:4}}>Menu</div>
       {items.map(item=>{const active=currentView===item.id||(currentView==="customer-detail"&&item.id==="customers");const Icon=item.icon;return <button key={item.id} onClick={()=>{onNavigate(item.id);onCloseMobile();}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",border:"none",borderRadius:8,background:active?"#1E293B":"transparent",color:active?"#F8FAFC":"#94A3B8",cursor:"pointer",fontSize:14,fontWeight:active?600:400,transition:"all 0.2s",marginBottom:2,textAlign:"left"}} onMouseEnter={e=>{if(!active)e.currentTarget.style.background="#1E293B80"}} onMouseLeave={e=>{if(!active)e.currentTarget.style.background=active?"#1E293B":"transparent"}}><Icon size={18}/>{item.label}</button>;})}
     </nav>
-    <div style={{padding:"16px 12px",borderTop:"1px solid #1E293B"}}><div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px"}}><div style={{width:32,height:32,borderRadius:"50%",background:"#1E293B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"#94A3B8"}}>FG</div><div><div style={{fontSize:13,fontWeight:500,color:"#E2E8F0"}}>Franciszek</div><div style={{fontSize:11,color:"#64748B"}}>Admin</div></div></div></div>
+    <div style={{padding:"16px 12px",borderTop:"1px solid #1E293B"}}><div onClick={()=>{onNavigate("settings");onCloseMobile()}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer",borderRadius:8,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#1E293B"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+      {session?.user?.image?<img src={session.user.image} style={{width:32,height:32,borderRadius:"50%",objectFit:"cover"}} referrerPolicy="no-referrer" alt=""/>:<div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff"}}>{(session?.user?.name||"?")[0].toUpperCase()}</div>}
+      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:500,color:"#E2E8F0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session?.user?.name||"Użytkownik"}</div><div style={{fontSize:11,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{session?.user?.email||""}</div></div>
+    </div></div>
   </div>;
   return <>
     <div className="sidebar-desktop" style={{display:"none"}}>{content}</div>
@@ -393,6 +397,45 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
 }
  
 // ── Main App ──────────────────────────────────────────────
+
+// ── Settings View ──────────────────────────────────────────────
+function SettingsView() {
+  const{data:session}=useSession();
+  return <div style={{padding:24,maxWidth:700}}>
+    <FadeIn><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden",marginBottom:20}}>
+      <div style={{padding:"20px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8}}><Users size={16} color="#2563EB"/><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>Profil</span></div>
+      <div style={{padding:24}}>
+        <div style={{display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+          {session?.user?.image?<img src={session.user.image} style={{width:80,height:80,borderRadius:20,objectFit:"cover",boxShadow:"0 4px 16px rgba(0,0,0,0.08)"}} referrerPolicy="no-referrer" alt=""/>:<div style={{width:80,height:80,borderRadius:20,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:28,color:"#fff"}}>{(session?.user?.name||"?")[0].toUpperCase()}</div>}
+          <div>
+            <div style={{fontSize:22,fontWeight:700,color:"#0F172A"}}>{session?.user?.name||"Użytkownik"}</div>
+            <div style={{fontSize:14,color:"#64748B",marginTop:2}}>{session?.user?.email||""}</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:10,padding:"4px 12px",borderRadius:20,background:"#F0FDF4",border:"1px solid #BBF7D0"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"#16A34A"}}/>
+              <span style={{fontSize:11,color:"#16A34A",fontWeight:600}}>Zalogowany przez Google</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></FadeIn>
+
+    <FadeIn delay={100}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden",marginBottom:20}}>
+      <div style={{padding:"20px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8}}><Zap size={16} color="#7C3AED"/><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>System</span></div>
+      <div style={{padding:"4px 24px"}}>
+        {[["Wersja","AXIVO CRM v1.0"],["Framework","Next.js 15"],["AI Model","GPT-5.6 Luna"],["Hosting","Vercel"],["Baza danych","PostgreSQL (Neon)"],["Automatyzacja","n8n"]].map(([k,v],i)=>
+          <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 0",borderBottom:i<5?"1px solid #F1F5F9":"none"}}>
+            <span style={{fontSize:13,color:"#64748B"}}>{k}</span>
+            <span style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{v}</span>
+          </div>
+        )}
+      </div>
+    </div></FadeIn>
+
+    <FadeIn delay={200}><button onClick={()=>signOut({callbackUrl:"/login"})} style={{width:"100%",padding:"14px 24px",borderRadius:14,border:"1px solid #FEE2E2",background:"#FEF2F2",color:"#EF4444",fontSize:15,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.background="#FEE2E2";e.currentTarget.style.borderColor="#FECACA"}} onMouseLeave={e=>{e.currentTarget.style.background="#FEF2F2";e.currentTarget.style.borderColor="#FEE2E2"}}>
+      <LogOut size={18}/>Wyloguj się
+    </button></FadeIn>
+  </div>;
+}
 export default function AxivoCRM() {
   const[view,setView]=useState("dashboard");
   const[selectedCustomer,setSelectedCustomer]=useState<number|null>(null);
@@ -415,6 +458,7 @@ export default function AxivoCRM() {
       <div style={{flex:1,overflow:"auto"}}>
         {view==="dashboard"&&<DashboardView stats={stats} onSelectCustomer={handleSelectCustomer} loading={loading}/>}
         {view==="customers"&&<CustomerListView customers={customers} onSelect={handleSelectCustomer} loading={loading} onRefresh={fetchData} onToast={m=>setToast(m)}/>}
+        {view==="settings"&&<SettingsView/>}
         {view==="customer-detail"&&selectedCustomer&&<CustomerDetailView customerId={selectedCustomer} onBack={()=>{setView("customers");fetchData()}} onToast={m=>setToast(m)} onDeleted={()=>{setView("customers");fetchData()}}/>}
       </div>
     </div>
