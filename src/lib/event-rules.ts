@@ -13,6 +13,8 @@ const MINOR_EVENTS = new Set([
   "INVOICE_INQUIRY",
   "JOB_APPLICATION",
   "GENERAL",
+  "RESPONSE",
+  "NOTE",
 ]);
  
 export function getEventLevel(eventType: string): "MAJOR" | "MINOR" {

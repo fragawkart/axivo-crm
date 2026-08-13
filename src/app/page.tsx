@@ -7,7 +7,7 @@ import {
   ArrowLeft, Search, TrendingUp, UserPlus, MessageSquare,
   AlertTriangle, Phone, FileText, Zap, ChevronDown, Menu, X,
   Circle, Loader2, RefreshCw, Inbox, Plus, StickyNote, AlertCircle,
-  Filter, Pencil, Trash2, Sparkles, Brain, Settings2, LogOut, Globe, MapPin, Briefcase, CalendarDays,
+  Filter, Pencil, Trash2, Sparkles, Brain, Settings2, LogOut, Globe, MapPin, Briefcase, CalendarDays, Send,
 } from "lucide-react";
  
 // ── Types ──────────────────────────────────────────────
@@ -21,8 +21,8 @@ interface SearchResults { customers: any[]; emails: any[]; events: any[]; }
 interface InsightItem { color: string; title: string; description: string; }
  
 // ── Helpers ──────────────────────────────────────────────
-function eventColor(t: string) { return ({ SERVICE_INQUIRY:"#2563EB",SALES_INQUIRY:"#16A34A",COMPLAINT:"#EF4444",INVOICE_INQUIRY:"#F59E0B",PARTNERSHIP_INQUIRY:"#7C3AED",JOB_APPLICATION:"#6B7280",FOLLOW_UP:"#3B82F6",QUESTION:"#64748B",GENERAL:"#94A3B8",NOTE:"#F97316" } as any)[t]||"#94A3B8"; }
-function eventIconComponent(t: string) { return ({ SERVICE_INQUIRY:Zap,SALES_INQUIRY:TrendingUp,COMPLAINT:AlertTriangle,INVOICE_INQUIRY:FileText,PARTNERSHIP_INQUIRY:Building2,JOB_APPLICATION:UserPlus,FOLLOW_UP:Phone,QUESTION:MessageSquare,GENERAL:Circle,NOTE:StickyNote } as any)[t]||Circle; }
+function eventColor(t: string) { return ({ SERVICE_INQUIRY:"#2563EB",SALES_INQUIRY:"#16A34A",COMPLAINT:"#EF4444",INVOICE_INQUIRY:"#F59E0B",PARTNERSHIP_INQUIRY:"#7C3AED",JOB_APPLICATION:"#6B7280",FOLLOW_UP:"#3B82F6",QUESTION:"#64748B",GENERAL:"#94A3B8",NOTE:"#F97316",RESPONSE:"#06B6D4" } as any)[t]||"#94A3B8"; }
+function eventIconComponent(t: string) { return ({ SERVICE_INQUIRY:Zap,SALES_INQUIRY:TrendingUp,COMPLAINT:AlertTriangle,INVOICE_INQUIRY:FileText,PARTNERSHIP_INQUIRY:Building2,JOB_APPLICATION:UserPlus,FOLLOW_UP:Phone,QUESTION:MessageSquare,GENERAL:Circle,NOTE:StickyNote,RESPONSE:Send } as any)[t]||Circle; }
 function eventLabel(t: string) { return ({ SERVICE_INQUIRY:"Zainteresowanie usługą",SALES_INQUIRY:"Szansa sprzedażowa",COMPLAINT:"Reklamacja",INVOICE_INQUIRY:"Faktura",PARTNERSHIP_INQUIRY:"Współpraca",JOB_APPLICATION:"Aplikacja",FOLLOW_UP:"Kontynuacja",QUESTION:"Pytanie",GENERAL:"Ogólne",NOTE:"Notatka" } as any)[t]||t; }
 function priorityBadge(p: number) { return ({ 1:{label:"Pilne",bg:"#FEE2E2",text:"#DC2626"},2:{label:"Ważne",bg:"#DBEAFE",text:"#2563EB"},3:{label:"Normalne",bg:"#F1F5F9",text:"#475569"},4:{label:"Niskie",bg:"#F8FAFC",text:"#94A3B8"} } as any)[p]||{label:"Normalne",bg:"#F1F5F9",text:"#475569"}; }
 function formatDate(d: string) { const dt=new Date(d); return dt.toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit",year:"numeric"})+" "+dt.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}); }
@@ -54,7 +54,7 @@ function getNextAction(s:string,w:boolean):{text:string;color:string}|null {
   return null;
 }
 function isWaitingForResponse(c:{lastEvent:{date:string;type:string}|null}) {
-  if(!c.lastEvent||c.lastEvent.type==="NOTE") return false;
+  if(!c.lastEvent||c.lastEvent.type==="NOTE"||c.lastEvent.type==="RESPONSE") return false;
   const days=Math.floor((Date.now()-new Date(c.lastEvent.date).getTime())/86400000);
   return days<=5;
 }
@@ -441,7 +441,7 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
             {(()=>{const s=getCustomerStatus(customer as any);return <span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:s.bg,color:s.color,display:"inline-flex",alignItems:"center",gap:5}}><span style={{width:7,height:7,borderRadius:"50%",background:s.dot}}/>{s.label}</span>})()}
           </div>
           <div style={{fontSize:13,color:"#64748B",marginTop:2}}>{customer.companyName?<><Building2 size={12} style={{display:"inline",verticalAlign:"-2px"}}/> {customer.companyName} &middot; </>:null}{customer.email}</div>
-          {(()=>{const now=Date.now();const hasOpenCase=customer.events.some(e=>e.type==="COMPLAINT"&&(now-new Date(e.date).getTime())<30*86400000);const hasOpenOffer=customer.events.some(e=>["SALES_INQUIRY","SERVICE_INQUIRY"].includes(e.type)&&(now-new Date(e.date).getTime())<14*86400000);const waiting=customer.events.length>0&&customer.events[0].type!=="NOTE"&&(now-new Date(customer.events[0].date).getTime())<5*86400000;return (hasOpenCase||hasOpenOffer||waiting)?<div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+          {(()=>{const now=Date.now();const hasOpenCase=customer.events.some(e=>e.type==="COMPLAINT"&&(now-new Date(e.date).getTime())<30*86400000);const hasOpenOffer=customer.events.some(e=>["SALES_INQUIRY","SERVICE_INQUIRY"].includes(e.type)&&(now-new Date(e.date).getTime())<14*86400000);const waiting=customer.events.length>0&&customer.events[0].type!=="NOTE"&&customer.events[0].type!=="RESPONSE"&&(now-new Date(customer.events[0].date).getTime())<5*86400000;return (hasOpenCase||hasOpenOffer||waiting)?<div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
             {hasOpenCase&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:"#FEF2F2",color:"#EF4444",display:"inline-flex",alignItems:"center",gap:4,border:"1px solid #FEE2E2"}}><AlertCircle size={11}/>Otwarta sprawa</span>}
             {hasOpenOffer&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:"#EFF6FF",color:"#2563EB",display:"inline-flex",alignItems:"center",gap:4,border:"1px solid #DBEAFE"}}><TrendingUp size={11}/>Otwarta oferta</span>}
             {waiting&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:"#FFFBEB",color:"#D97706",display:"inline-flex",alignItems:"center",gap:4,border:"1px solid #FEF3C7"}}><Clock size={11}/>Czeka na odpowiedź</span>}
@@ -513,10 +513,10 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
                   </div>
                 </div>
                 {isExpanded&&<div style={{marginTop:16,paddingTop:16,borderTop:"1px solid #E2E8F0"}}>
-                  {ev.emailSubject&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}><div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,fontWeight:600,color:"#0F172A"}}><Mail size={14} color="#2563EB"/>{ev.emailSubject}</div>{ev.emailFrom&&<span style={{fontSize:12,color:"#94A3B8"}}>od {ev.emailFrom}</span>}</div>}
+                  {ev.emailSubject&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}><div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,fontWeight:600,color:"#0F172A"}}><Mail size={14} color="#2563EB"/>{ev.emailSubject}</div>{ev.type==="RESPONSE"?<span style={{fontSize:12,color:"#06B6D4"}}>do {customer.name}</span>:ev.emailFrom&&<span style={{fontSize:12,color:"#94A3B8"}}>od {ev.emailFrom}</span>}</div>}
                   {ev.emailBody?<div style={{background:"#FAFBFC",borderRadius:10,padding:16,border:"1px solid #E2E8F0",fontSize:13,color:"#334155",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:400,overflow:"auto",marginBottom:12}}>{ev.emailBody}</div>
                   :ev.description?<p style={{margin:"0 0 12px",fontSize:13,color:"#475569",lineHeight:1.6}}>{ev.description}</p>:null}
-                  {ev.emailBody&&<div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#94A3B8"}}><Circle size={8} fill="#E2E8F0" color="#E2E8F0"/>Brak informacji o odpowiedzi</div>}
+                  {ev.emailBody&&ev.type!=="RESPONSE"&&(()=>{const resp=ev.emailThreadId?customer.events.find((e:any)=>e.type==="RESPONSE"&&e.emailThreadId===ev.emailThreadId&&new Date(e.date)>new Date(ev.date)):null;return resp?<div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#16A34A"}}><Circle size={8} fill="#16A34A" color="#16A34A"/>Odpowiedziano · {formatDate(resp.date)}</div>:<div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#F59E0B"}}><Circle size={8} fill="#FEF3C7" color="#F59E0B"/>Brak odpowiedzi</div>})()}
                 </div>}
               </div>
             </div>
