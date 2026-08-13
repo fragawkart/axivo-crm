@@ -7,14 +7,14 @@ import {
   ArrowLeft, Search, TrendingUp, UserPlus, MessageSquare,
   AlertTriangle, Phone, FileText, Zap, ChevronDown, Menu, X,
   Circle, Loader2, RefreshCw, Inbox, Plus, StickyNote, AlertCircle,
-  Filter, Pencil, Trash2, Sparkles, Brain, Settings2, LogOut,
+  Filter, Pencil, Trash2, Sparkles, Brain, Settings2, LogOut, Globe, MapPin, Briefcase, CalendarDays,
 } from "lucide-react";
  
 // ── Types ──────────────────────────────────────────────
 interface CustomerSummary { id: number; name: string; email: string; companyName: string; createdAt: string; lastEvent: { date: string; title: string; type: string } | null; eventCount: number; emailCount: number; }
 interface EventAnalysis { priority: number; categories: string[]; summary: string; suggestedReply: string; reason: string; }
 interface EventItem { id: number; type: string; level: string; title: string; description: string; date: string; emailSubject: string | null; emailBody: string | null; emailFrom: string | null; analysis: EventAnalysis | null; emailThreadId: string | null; }
-interface CustomerDetail { id: number; name: string; email: string; companyName: string; createdAt: string; eventCount: number; emailCount: number; events: EventItem[]; }
+interface CustomerDetail { id: number; name: string; email: string; companyName: string; createdAt: string; eventCount: number; emailCount: number; events: EventItem[]; phone: string; preferredLanguage: string; position: string; companyAddress: string; industry: string; website: string; responsiblePerson: string; }
 interface NeedsAttention { id: number; name: string; companyName: string; lastEventDate: string; lastEventTitle: string; eventCount: number; }
 interface Stats { customerCount: number; emailCount: number; eventCount: number; recentEvents: { id: number; type: string; level: string; title: string; date: string; customerId: number; customerName: string; customerCompany: string; priority: number; categories: string[]; }[]; needsAttention: NeedsAttention[]; }
 interface SearchResults { customers: any[]; emails: any[]; events: any[]; }
@@ -57,7 +57,7 @@ function FormModal({title,fields,onSave,onClose,saveLabel="Zapisz"}:{title:strin
   async function handleSave(){ if(!canSave)return; setSaving(true); setError(""); try{ await onSave(vals); }catch(e:any){ setError(e.message||"Błąd"); setSaving(false); } }
   return <div style={{position:"fixed",inset:0,zIndex:60,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.4)"}} onClick={onClose}/>
-    <div style={{position:"relative",zIndex:61,background:"#fff",borderRadius:16,padding:24,width:"100%",maxWidth:480,boxShadow:"0 20px 60px rgba(0,0,0,0.15)",animation:"slideUp 0.25s ease"}}>
+    <div style={{position:"relative",zIndex:61,background:"#fff",borderRadius:16,padding:24,width:"100%",maxWidth:480,maxHeight:"90vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.15)",animation:"slideUp 0.25s ease"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
         <h3 style={{margin:0,fontSize:18,fontWeight:700,color:"#0F172A"}}>{title}</h3>
         <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:"#94A3B8",padding:4}}><X size={20}/></button>
@@ -329,30 +329,46 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
   const threadCounts:Record<string,number>={};customer.events.forEach(ev=>{if(ev.emailThreadId){threadCounts[ev.emailThreadId]=(threadCounts[ev.emailThreadId]||0)+1}});const eventTypes=Array.from(new Set(customer.events.map(e=>e.type)));
   const filteredEvents=filterType==="ALL"?customer.events:customer.events.filter(e=>e.type===filterType);
  
-  return <div style={{padding:24,maxWidth:900}}>
+  return <div style={{padding:24,maxWidth:1200}}>
     <FadeIn><button onClick={onBack} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:500,padding:"4px 0",marginBottom:20,transition:"color 0.15s"}} onMouseEnter={e=>e.currentTarget.style.color="#2563EB"} onMouseLeave={e=>e.currentTarget.style.color="#64748B"}><ArrowLeft size={16}/>Wróć do listy</button></FadeIn>
  
-    {/* Customer card */}
-    <FadeIn delay={80}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",padding:24,marginBottom:24}}>
-      <div style={{display:"flex",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
-        <div style={{width:56,height:56,borderRadius:14,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:18,color:"#fff",flexShrink:0}}>{getInitials(customer.name)}</div>
-        <div style={{flex:1,minWidth:200}}>
-          <h2 style={{margin:0,fontSize:22,fontWeight:700,color:"#0F172A"}}>{customer.name}</h2>
-          {customer.companyName&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:4,color:"#64748B",fontSize:14}}><Building2 size={14}/>{customer.companyName}</div>}
-          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2,color:"#94A3B8",fontSize:13}}><Mail size={13}/>{customer.email}</div>
+    {/* Customer header */}
+    <FadeIn delay={80}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",padding:"20px 24px",marginBottom:20}}>
+      <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+        <div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:16,color:"#fff",flexShrink:0}}>{getInitials(customer.name)}</div>
+        <div style={{flex:1,minWidth:180}}>
+          <h2 style={{margin:0,fontSize:20,fontWeight:700,color:"#0F172A"}}>{customer.name}</h2>
+          <div style={{fontSize:13,color:"#64748B",marginTop:2}}>{customer.companyName?<><Building2 size={12} style={{display:"inline",verticalAlign:"-2px"}}/> {customer.companyName} &middot; </>:null}{customer.email}</div>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-start"}}>
-          <div style={{padding:"8px 16px",borderRadius:10,background:"#EFF6FF",border:"1px solid #BFDBFE"}}><div style={{fontSize:10,fontWeight:600,color:"#2563EB",textTransform:"uppercase",letterSpacing:0.5}}>E-maile</div><div style={{fontSize:18,fontWeight:700,color:"#1D4ED8",marginTop:2}}>{customer.emailCount}</div></div>
-          <div style={{padding:"8px 16px",borderRadius:10,background:"#F0FDF4",border:"1px solid #BBF7D0"}}><div style={{fontSize:10,fontWeight:600,color:"#16A34A",textTransform:"uppercase",letterSpacing:0.5}}>Wydarzenia</div><div style={{fontSize:18,fontWeight:700,color:"#15803D",marginTop:2}}>{customer.eventCount}</div></div>
-          <button onClick={()=>setShowNoteModal(true)} style={{padding:"8px 16px",borderRadius:10,background:"#0F172A",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,minHeight:52,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#1E293B"} onMouseLeave={e=>e.currentTarget.style.background="#0F172A"}><Plus size={16}/>Notatka</button>
-          <button onClick={()=>setShowEditModal(true)} style={{padding:"8px 16px",borderRadius:10,background:"#F1F5F9",border:"1px solid #E2E8F0",color:"#475569",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,minHeight:52,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#E2E8F0"} onMouseLeave={e=>e.currentTarget.style.background="#F1F5F9"}><Pencil size={14}/>Edytuj</button>
-          <button onClick={()=>setShowDeleteConfirm(true)} style={{padding:"8px 16px",borderRadius:10,background:"#FEF2F2",border:"1px solid #FEE2E2",color:"#EF4444",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,minHeight:52,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEE2E2"} onMouseLeave={e=>e.currentTarget.style.background="#FEF2F2"}><Trash2 size={14}/>Usuń</button>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={()=>setShowNoteModal(true)} style={{padding:"8px 14px",borderRadius:10,background:"#0F172A",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#1E293B"} onMouseLeave={e=>e.currentTarget.style.background="#0F172A"}><Plus size={14}/>Notatka</button>
+          <button onClick={()=>setShowEditModal(true)} style={{padding:"8px 14px",borderRadius:10,background:"#F1F5F9",border:"1px solid #E2E8F0",color:"#475569",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#E2E8F0"} onMouseLeave={e=>e.currentTarget.style.background="#F1F5F9"}><Pencil size={14}/>Edytuj</button>
+          <button onClick={()=>setShowDeleteConfirm(true)} style={{padding:"8px 14px",borderRadius:10,background:"#FEF2F2",border:"1px solid #FEE2E2",color:"#EF4444",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEE2E2"} onMouseLeave={e=>e.currentTarget.style.background="#FEF2F2"}><Trash2 size={14}/>Usuń</button>
         </div>
       </div>
     </div></FadeIn>
  
-    {/* Timeline */}
-    <FadeIn delay={200}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
+    {/* Two-column: info + timeline */}
+    <div className="cd-grid" style={{display:"grid",gap:20}}>
+ 
+      {/* Informacje o kliencie */}
+      <FadeIn delay={150}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8}}>
+          <FileText size={16} color="#2563EB"/>
+          <span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>Podstawowe informacje</span>
+          <button onClick={()=>setShowEditModal(true)} style={{marginLeft:"auto",padding:"4px 10px",borderRadius:6,border:"1px solid #E2E8F0",background:"#fff",color:"#64748B",fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:4,transition:"all 0.15s"}} onMouseEnter={e=>{e.currentTarget.style.background="#F1F5F9";e.currentTarget.style.color="#2563EB"}} onMouseLeave={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.color="#64748B"}}><Pencil size={11}/>Uzupełnij</button>
+        </div>
+        <div>
+          {(()=>{const firstDate=customer.events.length>0?customer.events[customer.events.length-1].date:null;const lastDate=customer.events.length>0?customer.events[0].date:null;const fields=[{icon:Users,label:"Imię i nazwisko",val:customer.name},{icon:Building2,label:"Nazwa firmy",val:customer.companyName},{icon:Mail,label:"Adres e-mail",val:customer.email},{icon:Phone,label:"Numer telefonu",val:customer.phone},{icon:MessageSquare,label:"Preferowany język",val:customer.preferredLanguage},{icon:Briefcase,label:"Stanowisko / rola",val:customer.position},{icon:MapPin,label:"Adres firmy",val:customer.companyAddress},{icon:TrendingUp,label:"Branża",val:customer.industry},{icon:Globe,label:"Strona internetowa",val:customer.website,link:true},{icon:CalendarDays,label:"Pierwszy kontakt",val:firstDate?formatDate(firstDate):null,computed:true},{icon:CalendarDays,label:"Ostatni kontakt",val:lastDate?formatDate(lastDate):null,computed:true},{icon:UserPlus,label:"Osoba odpowiedzialna",val:customer.responsiblePerson}];return fields.map((f,i)=>{const I=f.icon;const hasVal=!!f.val;return <div key={i} style={{padding:"10px 20px",display:"flex",alignItems:"center",gap:12,borderBottom:i<fields.length-1?"1px solid #F8FAFC":"none",transition:"background 0.1s"}} onMouseEnter={e=>e.currentTarget.style.background="#FAFBFC"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><div style={{width:28,height:28,borderRadius:7,background:hasVal?"#EFF6FF":"#F8FAFC",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><I size={14} color={hasVal?"#2563EB":"#CBD5E1"}/></div><div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:0.3,marginBottom:1}}>{f.label}</div>{f.link&&hasVal?<a href={f.val.startsWith("http")?f.val:"https://"+f.val} target="_blank" rel="noopener noreferrer" style={{fontSize:14,fontWeight:500,color:"#2563EB",textDecoration:"none",display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"} onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>{f.val}</a>:<div style={{fontSize:14,fontWeight:hasVal?500:400,color:hasVal?"#0F172A":"#CBD5E1"}}>{hasVal?f.val:"?"}</div>}</div></div>;});})()}
+        </div>
+        <div style={{padding:"12px 20px",borderTop:"1px solid #F1F5F9",display:"flex",gap:10}}>
+          <div style={{flex:1,padding:"10px 12px",borderRadius:8,background:"#EFF6FF",textAlign:"center"}}><div style={{fontSize:10,fontWeight:600,color:"#2563EB",textTransform:"uppercase",letterSpacing:0.5}}>E-maile</div><div style={{fontSize:20,fontWeight:700,color:"#1D4ED8",marginTop:2}}>{customer.emailCount}</div></div>
+          <div style={{flex:1,padding:"10px 12px",borderRadius:8,background:"#F0FDF4",textAlign:"center"}}><div style={{fontSize:10,fontWeight:600,color:"#16A34A",textTransform:"uppercase",letterSpacing:0.5}}>Wydarzenia</div><div style={{fontSize:20,fontWeight:700,color:"#15803D",marginTop:2}}>{customer.eventCount}</div></div>
+        </div>
+      </div></FadeIn>
+ 
+      {/* Timeline */}
+      <FadeIn delay={250}><div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden"}}>
       <div style={{padding:"16px 24px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <Clock size={16} color="#2563EB"/><span style={{fontWeight:600,fontSize:15,color:"#0F172A"}}>Timeline</span>
         {customer.events.length>0&&<span style={{fontSize:11,fontWeight:600,background:"#EFF6FF",color:"#2563EB",padding:"2px 8px",borderRadius:6}}>{customer.events.length}</span>}
@@ -398,9 +414,11 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
           </div>;})}
       </div>
     </div></FadeIn>
+    </div>
+    <style>{`.cd-grid{grid-template-columns:380px 1fr}@media(max-width:960px){.cd-grid{grid-template-columns:1fr}}`}</style>
  
     {showNoteModal&&<NoteModal customerId={customerId} onClose={()=>setShowNoteModal(false)} onSaved={()=>{fetchCustomer();onToast("Notatka zapisana")}}/>}
-    {showEditModal&&<FormModal title="Edytuj klienta" saveLabel="Zapisz" fields={[{key:"name",label:"Imię i nazwisko",value:customer.name,required:true},{key:"email",label:"Email",value:customer.email,required:true,type:"email"},{key:"companyName",label:"Firma",value:customer.companyName}]}
+    {showEditModal&&<FormModal title="Edytuj klienta" saveLabel="Zapisz" fields={[{key:"name",label:"Imię i nazwisko",value:customer.name,required:true},{key:"email",label:"Email",value:customer.email,required:true,type:"email"},{key:"companyName",label:"Firma",value:customer.companyName},{key:"phone",label:"Numer telefonu",value:customer.phone},{key:"position",label:"Stanowisko / rola",value:customer.position},{key:"companyAddress",label:"Adres firmy",value:customer.companyAddress},{key:"industry",label:"Branża",value:customer.industry},{key:"website",label:"Strona internetowa",value:customer.website},{key:"preferredLanguage",label:"Preferowany język",value:customer.preferredLanguage},{key:"responsiblePerson",label:"Osoba odpowiedzialna",value:customer.responsiblePerson}]}
       onClose={()=>setShowEditModal(false)} onSave={async(vals)=>{const res=await fetch(`/api/customers/${customerId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(vals)});if(!res.ok){const d=await res.json();throw new Error(d.error||"Błąd")} setShowEditModal(false);fetchCustomer();onToast("Klient zaktualizowany")}}/>}
     {showDeleteConfirm&&<ConfirmDialog danger title="Usuń klienta" message={`Czy na pewno chcesz usunąć ${customer.name}? Zostaną usunięte wszystkie jego maile, analizy i wydarzenia. Tej operacji nie można cofnąć.`} onCancel={()=>setShowDeleteConfirm(false)} onConfirm={handleDeleteCustomer}/>}
     {deleteEventId&&<ConfirmDialog danger title="Usuń wydarzenie" message="Czy na pewno chcesz usunąć to wydarzenie z timeline? Tej operacji nie można cofnąć." onCancel={()=>setDeleteEventId(null)} onConfirm={handleDeleteEvent}/>}
