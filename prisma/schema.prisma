@@ -22,6 +22,8 @@ model Customer {
   industry          String   @default("")
   website           String   @default("")
   responsiblePerson String   @default("") @map("responsible_person")
+  aiSummary            String?  @map("ai_summary")
+  aiSummaryGeneratedAt DateTime? @map("ai_summary_generated_at")
  
   emails       Email[]
   events       Event[]

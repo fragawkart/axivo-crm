@@ -299,6 +299,63 @@ function NoteModal({customerId,onClose,onSaved}:{customerId:number;onClose:()=>v
     }}/>;
 }
  
+
+// ── AI Customer Summary Panel ──────────────────────────────
+function AISummaryPanel({customerId}:{customerId:number}) {
+  const[summary,setSummary]=useState<string|null>(null);
+  const[generatedAt,setGeneratedAt]=useState<string|null>(null);
+  const[loading,setLoading]=useState(false);
+  const[fetched,setFetched]=useState(false);
+  const[error,setError]=useState("");
+ 
+  // Pobierz istniejące podsumowanie przy montowaniu
+  useEffect(()=>{
+    fetch(`/api/customers/${customerId}/summary`).then(r=>r.json()).then(d=>{
+      if(d.summary){setSummary(d.summary);setGeneratedAt(d.generatedAt)}
+      setFetched(true);
+    }).catch(()=>setFetched(true));
+  },[customerId]);
+ 
+  async function generate(){
+    setLoading(true);setError("");
+    try{
+      const res=await fetch(`/api/customers/${customerId}/summary`,{method:"POST"});
+      const d=await res.json();
+      if(d.error){setError(d.error)}
+      else{setSummary(d.summary);setGeneratedAt(d.generatedAt)}
+    }catch(e:any){setError("Błąd połączenia")}
+    finally{setLoading(false)}
+  }
+ 
+  if(!fetched) return null;
+ 
+  return <div style={{background:"#fff",borderRadius:14,border:"1px solid #E2E8F0",overflow:"hidden",marginBottom:20}}>
+    <div style={{padding:"14px 20px",borderBottom:"1px solid #F1F5F9",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#F8FAFC,#EFF6FF)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center"}}><Brain size={14} color="#fff"/></div>
+        <span style={{fontWeight:600,fontSize:14,color:"#0F172A"}}>Podsumowanie AI</span>
+        {generatedAt&&<span style={{fontSize:11,color:"#94A3B8",marginLeft:4}}>{daysAgo(generatedAt)}</span>}
+      </div>
+      <button onClick={generate} disabled={loading} style={{padding:"6px 14px",borderRadius:8,border:"none",background:loading?"#F1F5F9":"#2563EB",color:loading?"#94A3B8":"#fff",fontSize:12,fontWeight:600,cursor:loading?"default":"pointer",display:"flex",alignItems:"center",gap:5,transition:"all 0.2s",opacity:loading?0.7:1}}
+        onMouseEnter={e=>{if(!loading)e.currentTarget.style.background="#1D4ED8"}} onMouseLeave={e=>{if(!loading)e.currentTarget.style.background=loading?"#F1F5F9":"#2563EB"}}>
+        {loading?<><Loader2 size={13} style={{animation:"spin 1s linear infinite"}}/>Generuję...</>:summary?<><RefreshCw size={13}/>Generuj ponownie</>:<><Sparkles size={13}/>Generuj podsumowanie</>}
+      </button>
+    </div>
+    <div style={{padding:"16px 20px"}}>
+      {!summary&&!loading&&!error&&<div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",color:"#94A3B8"}}>
+        <Brain size={24} color="#E2E8F0"/>
+        <div><div style={{fontSize:13,fontWeight:500}}>Brak podsumowania</div><div style={{fontSize:12,marginTop:2}}>Kliknij „Generuj podsumowanie" żeby AI przeanalizowało historię tego klienta.</div></div>
+      </div>}
+      {loading&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"20px 0",gap:10}}>
+        <Loader2 size={20} color="#2563EB" style={{animation:"spin 1s linear infinite"}}/>
+        <span style={{fontSize:13,color:"#64748B"}}>Analizuję historię klienta...</span>
+      </div>}
+      {error&&<div style={{padding:12,borderRadius:8,background:"#FEF2F2",border:"1px solid #FEE2E2",color:"#DC2626",fontSize:13}}>{error}</div>}
+      {summary&&!loading&&<div style={{fontSize:14,color:"#334155",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{summary}</div>}
+    </div>
+  </div>;
+}
+ 
 // ── Customer Detail + Timeline ──────────────────────────────
 function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:number;onBack:()=>void;onToast:(m:string)=>void;onDeleted:()=>void}) {
   const[customer,setCustomer]=useState<CustomerDetail|null>(null);
@@ -347,6 +404,8 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
         </div>
       </div>
     </div></FadeIn>
+ 
+    <FadeIn delay={120}><AISummaryPanel customerId={customerId}/></FadeIn>
  
     {/* Two-column: info + timeline */}
     <div className="cd-grid" style={{display:"grid",gap:20}}>
