@@ -425,8 +425,8 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
   if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:80}}><Loader2 size={32} color="#2563EB" style={{animation:"spin 1s linear infinite"}}/></div>;
   if(!customer) return null;
  
-  const threadCounts:Record<string,number>={};customer.events.forEach(ev=>{if(ev.emailThreadId){threadCounts[ev.emailThreadId]=(threadCounts[ev.emailThreadId]||0)+1}});const eventTypes=Array.from(new Set(customer.events.map(e=>e.type)));
-  const filteredEvents=filterType==="ALL"?customer.events:customer.events.filter(e=>e.type===filterType);
+  const threadCounts:Record<string,number>={};customer.events.filter(ev=>ev.type!=="RESPONSE").forEach(ev=>{if(ev.emailThreadId){threadCounts[ev.emailThreadId]=(threadCounts[ev.emailThreadId]||0)+1}});const eventTypes=Array.from(new Set(customer.events.filter(e=>e.type!=="RESPONSE").map(e=>e.type)));
+  const filteredEvents=(filterType==="ALL"?customer.events:customer.events.filter(e=>e.type===filterType)).filter(e=>e.type!=="RESPONSE");
  
   return <div style={{padding:24,maxWidth:1200}}>
     <FadeIn><button onClick={onBack} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"#64748B",cursor:"pointer",fontSize:13,fontWeight:500,padding:"4px 0",marginBottom:20,transition:"color 0.15s"}} onMouseEnter={e=>e.currentTarget.style.color="#2563EB"} onMouseLeave={e=>e.currentTarget.style.color="#64748B"}><ArrowLeft size={16}/>Wróć do listy</button></FadeIn>
@@ -449,7 +449,7 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button onClick={()=>setShowNoteModal(true)} style={{padding:"8px 14px",borderRadius:10,background:"#0F172A",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#1E293B"} onMouseLeave={e=>e.currentTarget.style.background="#0F172A"}><Plus size={14}/>Notatka</button>
-          <button onClick={()=>setShowEditModal(true)} style={{padding:"8px 14px",borderRadius:10,background:"#F1F5F9",border:"1px solid #E2E8F0",color:"#475569",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#E2E8F0"} onMouseLeave={e=>e.currentTarget.style.background="#F1F5F9"}><Pencil size={14}/>Edytuj</button>
+          
           <button onClick={()=>setShowDeleteConfirm(true)} style={{padding:"8px 14px",borderRadius:10,background:"#FEF2F2",border:"1px solid #FEE2E2",color:"#EF4444",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#FEE2E2"} onMouseLeave={e=>e.currentTarget.style.background="#FEF2F2"}><Trash2 size={14}/>Usuń</button>
         </div>
       </div>
@@ -516,7 +516,7 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
                   {ev.emailSubject&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,flexWrap:"wrap"}}><div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,fontWeight:600,color:"#0F172A"}}><Mail size={14} color="#2563EB"/>{ev.emailSubject}</div>{ev.type==="RESPONSE"?<span style={{fontSize:12,color:"#06B6D4"}}>do {customer.name}</span>:ev.emailFrom&&<span style={{fontSize:12,color:"#94A3B8"}}>od {ev.emailFrom}</span>}</div>}
                   {ev.emailBody?<div style={{background:"#FAFBFC",borderRadius:10,padding:16,border:"1px solid #E2E8F0",fontSize:13,color:"#334155",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:400,overflow:"auto",marginBottom:12}}>{ev.emailBody}</div>
                   :ev.description?<p style={{margin:"0 0 12px",fontSize:13,color:"#475569",lineHeight:1.6}}>{ev.description}</p>:null}
-                  {ev.emailBody&&ev.type!=="RESPONSE"&&(()=>{const resp=ev.emailThreadId?customer.events.find((e:any)=>e.type==="RESPONSE"&&e.emailThreadId===ev.emailThreadId&&new Date(e.date)>new Date(ev.date)):null;return resp?<div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#16A34A"}}><Circle size={8} fill="#16A34A" color="#16A34A"/>Odpowiedziano · {formatDate(resp.date)}</div>:<div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#F59E0B"}}><Circle size={8} fill="#FEF3C7" color="#F59E0B"/>Brak odpowiedzi</div>})()}
+                  {ev.emailBody&&ev.type!=="RESPONSE"&&(()=>{const resp=ev.emailThreadId?customer.events.find((e:any)=>e.type==="RESPONSE"&&e.emailThreadId===ev.emailThreadId&&new Date(e.date)>new Date(ev.date)):null;return resp?<div><div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#16A34A",marginBottom:resp.emailBody?10:0}}><Circle size={8} fill="#16A34A" color="#16A34A"/>Odpowiedziano · {formatDate(resp.date)}</div>{resp.emailBody&&<div style={{background:"#F0FDF4",borderRadius:10,padding:16,border:"1px solid #BBF7D0",fontSize:13,color:"#334155",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:300,overflow:"auto",marginTop:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,fontSize:12,fontWeight:600,color:"#16A34A"}}><Send size={12}/>Twoja odpowiedź</div>{resp.emailBody}</div>}</div>:<div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#F59E0B"}}><Circle size={8} fill="#FEF3C7" color="#F59E0B"/>Brak odpowiedzi</div>})()}
                 </div>}
               </div>
             </div>
