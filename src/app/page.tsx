@@ -30,6 +30,35 @@ function formatDateShort(d: string) { const dt=new Date(d); return dt.toLocaleDa
 function getInitials(n: string) { return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?"; }
 function daysAgo(d: string) { const x=Math.floor((Date.now()-new Date(d).getTime())/86400000); return x===0?"Dzisiaj":x===1?"Wczoraj":x+" dni temu"; }
  
+
+// ── Customer Status Helpers ──────────────────────────────
+function getCustomerStatus(c:{lastEvent:{date:string;type:string}|null;eventCount:number;createdAt:string}) {
+  const daysSince=c.lastEvent?Math.floor((Date.now()-new Date(c.lastEvent.date).getTime())/86400000):999;
+  const daysCreated=Math.floor((Date.now()-new Date(c.createdAt).getTime())/86400000);
+  const t=c.lastEvent?.type||"";
+  if(daysSince>30) return {label:"Nieaktywny",color:"#94A3B8",bg:"#F8FAFC",dot:"#CBD5E1"};
+  if(t==="COMPLAINT"&&daysSince<14) return {label:"Ryzyko utraty",color:"#EF4444",bg:"#FEF2F2",dot:"#EF4444"};
+  if(daysSince>14) return {label:"Ryzyko utraty",color:"#EF4444",bg:"#FEF2F2",dot:"#EF4444"};
+  if(daysSince>7) return {label:"Wymaga uwagi",color:"#F59E0B",bg:"#FFFBEB",dot:"#F59E0B"};
+  if(daysCreated<=7&&c.eventCount<=2) return {label:"Nowy klient",color:"#7C3AED",bg:"#F5F3FF",dot:"#7C3AED"};
+  if(["SALES_INQUIRY","SERVICE_INQUIRY"].includes(t)) return {label:"Potencjalny upsell",color:"#2563EB",bg:"#EFF6FF",dot:"#2563EB"};
+  return {label:"Aktywny",color:"#16A34A",bg:"#F0FDF4",dot:"#16A34A"};
+}
+function getNextAction(s:string,w:boolean):{text:string;color:string}|null {
+  if(s==="Ryzyko utraty") return {text:"Pilny kontakt",color:"#EF4444"};
+  if(s==="Wymaga uwagi") return {text:"Sprawdź klienta",color:"#F59E0B"};
+  if(s==="Nowy klient") return {text:"Przywitaj się",color:"#7C3AED"};
+  if(s==="Potencjalny upsell") return {text:"Przygotuj ofertę",color:"#2563EB"};
+  if(s==="Nieaktywny") return {text:"Reaktywacja",color:"#94A3B8"};
+  if(w) return {text:"Odpowiedz",color:"#3B82F6"};
+  return null;
+}
+function isWaitingForResponse(c:{lastEvent:{date:string;type:string}|null}) {
+  if(!c.lastEvent||c.lastEvent.type==="NOTE") return false;
+  const days=Math.floor((Date.now()-new Date(c.lastEvent.date).getTime())/86400000);
+  return days<=5;
+}
+ 
 // ── Shared Components ──────────────────────────────────
 function FadeIn({children,delay=0,className=""}:{children:React.ReactNode;delay?:number;className?:string}) { const[v,setV]=useState(false); useEffect(()=>{const t=setTimeout(()=>setV(true),delay);return()=>clearTimeout(t)},[delay]); return <div className={className} style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(12px)",transition:"opacity 0.4s ease, transform 0.4s ease"}}>{children}</div>; }
 function EmptyState({icon:Icon,title,description}:{icon:any;title:string;description:string}) { return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 24px"}}><div style={{width:64,height:64,borderRadius:16,background:"#F1F5F9",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16}}><Icon size={28} color="#CBD5E1"/></div><div style={{fontSize:16,fontWeight:600,color:"#64748B",marginBottom:4}}>{title}</div><div style={{fontSize:13,color:"#94A3B8",textAlign:"center",maxWidth:320}}>{description}</div></div>; }
@@ -276,8 +305,21 @@ function CustomerListView({customers,onSelect,loading,onRefresh,onToast}:{custom
       {filtered.length===0?<EmptyState icon={Users} title={customers.length===0?"Brak klientów":"Nie znaleziono"} description={customers.length===0?"Klienci pojawią się automatycznie z n8n, lub dodaj ręcznie.":"Spróbuj inną frazę."}/>:
       filtered.map((c,i)=><div key={c.id} onClick={()=>onSelect(c.id)} style={{padding:"14px 20px",borderBottom:i<filtered.length-1?"1px solid #F1F5F9":"none",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"background 0.15s"}} onMouseEnter={e=>e.currentTarget.style.background="#F8FAFC"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
         <div style={{width:40,height:40,borderRadius:"50%",background:"#EFF6FF",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:"#2563EB",flexShrink:0}}>{getInitials(c.name)}</div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:14,color:"#0F172A"}}>{c.name}</div><div style={{fontSize:12,color:"#64748B"}}>{c.companyName||c.email}</div></div>
-        <div style={{textAlign:"right",marginRight:8}}><div style={{fontSize:12,color:"#64748B"}}>{c.eventCount} wydarzeń</div>{c.lastEvent&&<div style={{fontSize:11,color:"#94A3B8"}}>{daysAgo(c.lastEvent.date)}</div>}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+            <span style={{fontWeight:600,fontSize:14,color:"#0F172A"}}>{c.name}</span>
+            {(()=>{const s=getCustomerStatus(c);return <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:6,background:s.bg,color:s.color,display:"inline-flex",alignItems:"center",gap:4,flexShrink:0}}><span style={{width:6,height:6,borderRadius:"50%",background:s.dot,display:"inline-block"}}/>{s.label}</span>})()}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:12,color:"#64748B"}}>{c.companyName||c.email}</span>
+            {isWaitingForResponse(c)&&<span style={{fontSize:10,fontWeight:500,padding:"1px 7px",borderRadius:4,background:"#FEF3C7",color:"#D97706",display:"inline-flex",alignItems:"center",gap:3,flexShrink:0}}><Clock size={9}/>Czeka na odpowiedź</span>}
+          </div>
+        </div>
+        <div style={{textAlign:"right",marginRight:8}}>
+          <div style={{fontSize:12,color:"#64748B"}}>{c.eventCount} wydarzeń</div>
+          {c.lastEvent&&<div style={{fontSize:11,color:"#94A3B8",marginBottom:2}}>{daysAgo(c.lastEvent.date)}</div>}
+          {(()=>{const s=getCustomerStatus(c);const w=isWaitingForResponse(c);const a=getNextAction(s.label,w);return a?<div style={{fontSize:10,fontWeight:600,color:a.color}}>→ {a.text}</div>:null})()}
+        </div>
         <ChevronRight size={16} color="#CBD5E1"/>
       </div>)}
     </div></FadeIn>
@@ -394,8 +436,16 @@ function CustomerDetailView({customerId,onBack,onToast,onDeleted}:{customerId:nu
       <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
         <div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#2563EB,#3B82F6)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:16,color:"#fff",flexShrink:0}}>{getInitials(customer.name)}</div>
         <div style={{flex:1,minWidth:180}}>
-          <h2 style={{margin:0,fontSize:20,fontWeight:700,color:"#0F172A"}}>{customer.name}</h2>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:2}}>
+            <h2 style={{margin:0,fontSize:20,fontWeight:700,color:"#0F172A"}}>{customer.name}</h2>
+            {(()=>{const s=getCustomerStatus(customer as any);return <span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:s.bg,color:s.color,display:"inline-flex",alignItems:"center",gap:5}}><span style={{width:7,height:7,borderRadius:"50%",background:s.dot}}/>{s.label}</span>})()}
+          </div>
           <div style={{fontSize:13,color:"#64748B",marginTop:2}}>{customer.companyName?<><Building2 size={12} style={{display:"inline",verticalAlign:"-2px"}}/> {customer.companyName} &middot; </>:null}{customer.email}</div>
+          {(()=>{const now=Date.now();const hasOpenCase=customer.events.some(e=>e.type==="COMPLAINT"&&(now-new Date(e.date).getTime())<30*86400000);const hasOpenOffer=customer.events.some(e=>["SALES_INQUIRY","SERVICE_INQUIRY"].includes(e.type)&&(now-new Date(e.date).getTime())<14*86400000);const waiting=customer.events.length>0&&customer.events[0].type!=="NOTE"&&(now-new Date(customer.events[0].date).getTime())<5*86400000;return (hasOpenCase||hasOpenOffer||waiting)?<div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
+            {hasOpenCase&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:"#FEF2F2",color:"#EF4444",display:"inline-flex",alignItems:"center",gap:4,border:"1px solid #FEE2E2"}}><AlertCircle size={11}/>Otwarta sprawa</span>}
+            {hasOpenOffer&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:"#EFF6FF",color:"#2563EB",display:"inline-flex",alignItems:"center",gap:4,border:"1px solid #DBEAFE"}}><TrendingUp size={11}/>Otwarta oferta</span>}
+            {waiting&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:8,background:"#FFFBEB",color:"#D97706",display:"inline-flex",alignItems:"center",gap:4,border:"1px solid #FEF3C7"}}><Clock size={11}/>Czeka na odpowiedź</span>}
+          </div>:null})()}
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button onClick={()=>setShowNoteModal(true)} style={{padding:"8px 14px",borderRadius:10,background:"#0F172A",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"background 0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="#1E293B"} onMouseLeave={e=>e.currentTarget.style.background="#0F172A"}><Plus size={14}/>Notatka</button>
